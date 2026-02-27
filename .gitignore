@@ -1,0 +1,28 @@
+# Imágenes descargadas
+images/
+
+# Embeddings y modelos
+embeddings/
+
+# Crops segmentados
+crops/
+
+# Plan y contexto
+PLAN.md
+contexto.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
