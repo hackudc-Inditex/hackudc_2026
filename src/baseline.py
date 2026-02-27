@@ -27,7 +27,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 def load_model():
     print(f"Cargando {MODEL_NAME} en {DEVICE}...")
-    model, _, preprocess = open_clip.create_model_and_pretrained(MODEL_NAME, pretrained=PRETRAINED, device=DEVICE)
+    model, _, preprocess = open_clip.create_model_and_transforms(MODEL_NAME, pretrained=PRETRAINED, device=DEVICE)
     model.eval()
     if DEVICE == "cuda":
         model = model.half()
