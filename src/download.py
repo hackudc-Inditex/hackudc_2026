@@ -14,17 +14,25 @@ from tqdm.asyncio import tqdm_asyncio
 BASE_DIR = Path(__file__).resolve().parent.parent
 BUNDLES_DIR = BASE_DIR / "images" / "bundles"
 PRODUCTS_DIR = BASE_DIR / "images" / "products"
-MAX_CONCURRENT = 50
-TIMEOUT = aiohttp.ClientTimeout(total=30)
+MAX_CONCURRENT = 10
+TIMEOUT = aiohttp.ClientTimeout(total=60)
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+}
 
 
-async def download_image(session: aiohttp.ClientSession, url: str, save_path: Path, sem: asyncio.Semaphore, retries: int = 3):
+async def download_image(session: aiohttp.ClientSession, url: str, save_path: Path, sem: asyncio.Semaphore, retries: int = 5):
     if save_path.exists():
         return True
     for attempt in range(retries):
         try:
             async with sem:
-                async with session.get(url, timeout=TIMEOUT) as resp:
+                await asyncio.sleep(0.05)  # pequeño delay entre requests
+                async with session.get(url, timeout=TIMEOUT, headers=HEADERS) as resp:
+                    if resp.status == 429:  # rate limited
+                        await asyncio.sleep(2 * (attempt + 1))
+                        continue
                     if resp.status != 200:
                         continue
                     data = await resp.read()
@@ -35,7 +43,7 @@ async def download_image(session: aiohttp.ClientSession, url: str, save_path: Pa
         except Exception:
             if attempt == retries - 1:
                 return False
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1 * (attempt + 1))
     return False
 
 
@@ -59,12 +67,15 @@ async def download_all():
             path = PRODUCTS_DIR / f"{row['product_asset_id']}.jpg"
             tasks.append(download_image(session, row["product_image_url"], path, sem))
 
-        print(f"Descargando {len(tasks)} imágenes ({len(bundles_df)} bundles + {len(products_df)} productos)...")
+        # Contar cuantas faltan
+        pending = sum(1 for t in tasks if not isinstance(t, bool))
+        print(f"Total: {len(tasks)} imágenes ({len(bundles_df)} bundles + {len(products_df)} productos)")
+        print(f"Descargando con {MAX_CONCURRENT} conexiones simultáneas...")
         results = await tqdm_asyncio.gather(*tasks)
 
     ok = sum(results)
     fail = len(results) - ok
-    print(f"Completado: {ok} OK, {fail} fallos")
+    print(f"\nCompletado: {ok} OK, {fail} fallos")
     if fail > 0:
         print("Ejecuta de nuevo para reintentar los fallos (se saltan las ya descargadas)")
 
