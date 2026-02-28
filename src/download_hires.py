@@ -49,20 +49,17 @@ async def main():
     HIRES_DIR.mkdir(parents=True, exist_ok=True)
 
     bundles = {b["bundle_asset_id"]: b["bundle_image_url"] for b in load_csv(BASE_DIR / "bundles_dataset.csv")}
-    test = load_csv(BASE_DIR / "bundles_product_match_test.csv")
-    test_bids = list(set(row["bundle_asset_id"] for row in test))
 
     sem = asyncio.Semaphore(MAX_CONCURRENT)
     connector = aiohttp.TCPConnector(limit=MAX_CONCURRENT, force_close=True)
 
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = []
-        for bid in test_bids:
-            url = bundles.get(bid, "")
+        for bid, url in bundles.items():
             path = HIRES_DIR / f"{bid}.jpg"
             tasks.append(download_image(session, url, path, sem))
 
-        print(f"Descargando {len(tasks)} bundles de test en alta resolución...")
+        print(f"Descargando {len(tasks)} bundles en alta resolución...")
         from tqdm.asyncio import tqdm_asyncio
         results = await tqdm_asyncio.gather(*tasks)
 
