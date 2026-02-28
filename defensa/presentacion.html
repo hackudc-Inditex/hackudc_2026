@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HackUDC - Zara Visual Product Recognition</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #f0f0f0; overflow: hidden; }
+
+.slide {
+    display: none; width: 100vw; height: 100vh;
+    padding: 60px 80px; flex-direction: column; justify-content: center;
+}
+.slide.active { display: flex; }
+
+h1 { font-size: 3.2em; font-weight: 700; margin-bottom: 20px; line-height: 1.1; }
+h2 { font-size: 2.4em; font-weight: 600; margin-bottom: 30px; color: #fff; }
+h3 { font-size: 1.5em; font-weight: 600; margin-bottom: 15px; color: #ccc; }
+p, li { font-size: 1.35em; line-height: 1.6; color: #ccc; }
+li { margin-bottom: 10px; }
+ul { list-style: none; padding-left: 0; }
+ul li::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 14px; vertical-align: middle; }
+
+.accent { color: #4fc3f7; }
+.accent2 { color: #81c784; }
+.accent3 { color: #ffb74d; }
+.accent4 { color: #f06292; }
+.dim { color: #888; }
+.bold { font-weight: 700; color: #fff; }
+
+.tag {
+    display: inline-block; padding: 4px 14px; border-radius: 20px;
+    font-size: 0.85em; font-weight: 600; margin: 3px 4px;
+}
+.tag-blue { background: #1565c022; border: 1px solid #4fc3f7; color: #4fc3f7; }
+.tag-green { background: #2e7d3222; border: 1px solid #81c784; color: #81c784; }
+.tag-orange { background: #e6510022; border: 1px solid #ffb74d; color: #ffb74d; }
+.tag-pink { background: #c2185b22; border: 1px solid #f06292; color: #f06292; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: start; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 35px; align-items: start; }
+
+.card {
+    background: #161616; border: 1px solid #2a2a2a; border-radius: 16px;
+    padding: 30px; height: 100%;
+}
+.card h3 { margin-bottom: 12px; }
+.card p, .card li { font-size: 1.1em; }
+
+.diagram {
+    background: #111; border: 1px solid #333; border-radius: 12px;
+    padding: 25px 30px; font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 1.05em; line-height: 1.7; color: #aaa; white-space: pre;
+    overflow-x: auto;
+}
+
+.pipeline-step {
+    display: flex; align-items: center; gap: 20px; margin: 12px 0;
+    padding: 16px 24px; background: #161616; border-radius: 12px;
+    border-left: 4px solid #333;
+}
+.pipeline-step .num {
+    font-size: 2em; font-weight: 800; min-width: 50px; text-align: center;
+}
+.pipeline-step .content { flex: 1; }
+.pipeline-step .content h3 { margin-bottom: 4px; font-size: 1.2em; }
+.pipeline-step .content p { font-size: 1em; }
+
+.step-blue { border-left-color: #4fc3f7; }
+.step-blue .num { color: #4fc3f7; }
+.step-green { border-left-color: #81c784; }
+.step-green .num { color: #81c784; }
+.step-orange { border-left-color: #ffb74d; }
+.step-orange .num { color: #ffb74d; }
+.step-pink { border-left-color: #f06292; }
+.step-pink .num { color: #f06292; }
+
+.big-number { font-size: 5em; font-weight: 800; line-height: 1; }
+.metric-label { font-size: 1.1em; color: #888; margin-top: 5px; }
+
+.cycle {
+    display: flex; align-items: center; justify-content: center;
+    gap: 15px; margin: 30px 0; flex-wrap: wrap;
+}
+.cycle-step {
+    background: #161616; border: 1px solid #2a2a2a; border-radius: 12px;
+    padding: 18px 24px; text-align: center; min-width: 160px;
+}
+.cycle-step h3 { font-size: 1.1em; margin-bottom: 6px; }
+.cycle-step p { font-size: 0.95em; }
+.cycle-arrow { font-size: 2em; color: #555; }
+
+.progress-bar {
+    width: 100%; height: 40px; background: #1a1a1a; border-radius: 20px;
+    overflow: hidden; margin: 15px 0; border: 1px solid #333;
+}
+.progress-fill {
+    height: 100%; border-radius: 20px; display: flex;
+    align-items: center; justify-content: center; font-weight: 700; font-size: 1.1em;
+}
+
+.nav {
+    position: fixed; bottom: 25px; right: 30px; display: flex; gap: 10px; z-index: 100;
+}
+.nav button {
+    background: #222; color: #aaa; border: 1px solid #444; border-radius: 8px;
+    padding: 10px 18px; font-size: 1em; cursor: pointer; transition: all 0.2s;
+}
+.nav button:hover { background: #333; color: #fff; }
+
+.slide-counter {
+    position: fixed; bottom: 30px; left: 30px; color: #555; font-size: 0.95em; z-index: 100;
+}
+
+.subtitle { font-size: 1.6em; color: #888; margin-top: 10px; font-weight: 400; }
+
+.two-col { display: flex; gap: 50px; }
+.two-col > div { flex: 1; }
+
+.highlight-box {
+    background: #1a2332; border: 1px solid #2a4a6a; border-radius: 12px;
+    padding: 24px 28px; margin: 15px 0;
+}
+
+.comparison { display: flex; gap: 30px; margin: 20px 0; }
+.comparison > div {
+    flex: 1; padding: 25px; border-radius: 12px; text-align: center;
+}
+.comp-bad { background: #2a1515; border: 1px solid #5a2a2a; }
+.comp-good { background: #152a15; border: 1px solid #2a5a2a; }
+
+table {
+    width: 100%; border-collapse: collapse; margin: 15px 0;
+    font-size: 1.1em;
+}
+th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid #2a2a2a; }
+th { color: #888; font-weight: 600; font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px; }
+td { color: #ccc; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: TITLE -->
+<div class="slide active" id="s1">
+    <div>
+        <p class="dim" style="font-size:1.1em; margin-bottom:20px;">HackUDC 2025 &mdash; Zara Challenge</p>
+        <h1>Visual Product<br><span class="accent">Recognition</span></h1>
+        <p class="subtitle">Identificar productos de Zara a partir de fotos de modelos</p>
+        <div style="margin-top: 50px;">
+            <span class="tag tag-blue">CLIP ViT-L-14</span>
+            <span class="tag tag-green">YOLOv8</span>
+            <span class="tag tag-orange">Contrastive Learning</span>
+            <span class="tag tag-pink">Human-in-the-Loop</span>
+        </div>
+        <p style="margin-top:50px; color:#555; font-size:1em;">Pulsa <b style="color:#888;">&rarr;</b> o <b style="color:#888;">espacio</b> para avanzar</p>
+    </div>
+</div>
+
+<!-- SLIDE 2: THE PROBLEM -->
+<div class="slide" id="s2">
+    <h2>El Problema</h2>
+    <div class="grid2">
+        <div>
+            <p style="margin-bottom:25px;">Dada una foto de un modelo vistiendo ropa de Zara, identificar <span class="bold">que productos</span> del catalogo lleva puestos.</p>
+            <table>
+                <tr><th>Dato</th><th>Cantidad</th></tr>
+                <tr><td>Productos en catalogo</td><td class="accent bold">27,688</td></tr>
+                <tr><td>Bundles de entrenamiento</td><td>1,824</td></tr>
+                <tr><td>Bundles de test</td><td>455</td></tr>
+                <tr><td>Secciones comerciales</td><td>3 (Mujer, Hombre, Kids)</td></tr>
+                <tr><td>Predicciones por bundle</td><td>max. 15</td></tr>
+            </table>
+        </div>
+        <div>
+            <div class="card">
+                <h3 class="accent3">Desafios</h3>
+                <ul>
+                    <li>Un modelo puede llevar 2-8 productos simultaneos</li>
+                    <li>Productos muy similares (misma camiseta en 5 colores)</li>
+                    <li>Zapatos, bolsos y accesorios dificiles de detectar</li>
+                    <li>27K productos candidatos &rarr; busqueda en pajar de agujas</li>
+                    <li>Metrica: <span class="bold">recall@15</span> (de los productos reales, cuantos aciertas en tus 15)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 3: ARCHITECTURE OVERVIEW -->
+<div class="slide" id="s3">
+    <h2>Arquitectura General</h2>
+    <div class="diagram" style="font-size: 0.95em;">
+  <span class="accent">Imagen del modelo (bundle)</span>
+       |
+       +------> <span class="accent2">CLIP ViT-L-14</span> -----> Embedding global (768d)
+       |
+       +------> <span class="accent3">YOLOv8 DeepFashion2</span> --> Detecta prendas individuales
+       |              |
+       |              +---> Crop camiseta --> <span class="accent2">CLIP</span> --> 768d --|
+       |              +---> Crop pantalon --> <span class="accent2">CLIP</span> --> 768d --|
+       |              +---> Crop vestido  --> <span class="accent2">CLIP</span> --> 768d --|
+       |                                                          |
+       +------> <span class="accent4">Zone Crops</span> (zonas fijas)                       |
+                      |                                          v
+                      +---> Crop pies  --> <span class="accent2">CLIP</span> --> 768d --> <span class="bold">Projection Head</span>
+                      +---> Crop cabeza --> <span class="accent2">CLIP</span> --> 768d -->  (MLP 768->1536->768)
+                                                                  |
+  <span class="accent">Imagen de producto</span> --> <span class="accent2">CLIP</span> --> 768d                          |
+                                                                  v
+                                                          <span class="accent">FAISS similarity search</span>
+                                                                  |
+                                                          <span class="accent3">8 scoring signals</span>
+                                                                  |
+                                                             <span class="bold">Top 15 productos</span></div>
+</div>
+
+<!-- SLIDE 4: CLIP -->
+<div class="slide" id="s4">
+    <h2><span class="accent">CLIP</span> &mdash; Vision-Language Model</h2>
+    <div class="grid2">
+        <div>
+            <p style="margin-bottom:20px;"><span class="bold">CLIP ViT-L-14</span> (OpenAI) es un modelo preentrenado en 400M de pares imagen-texto.</p>
+            <p style="margin-bottom:20px;">Genera <span class="bold">embeddings de 768 dimensiones</span> que capturan la semantica visual: color, forma, textura, tipo de prenda.</p>
+            <p style="margin-bottom:20px;">Dos imagenes similares &rarr; embeddings cercanos en el espacio vectorial.</p>
+            <div class="highlight-box">
+                <h3 class="accent" style="font-size:1.1em;">Por que CLIP?</h3>
+                <p style="font-size:1em;">A diferencia de clasificadores tradicionales, CLIP entiende <span class="bold">relaciones semanticas</span> entre imagenes sin necesitar reentrenamiento especifico. Ideal para matching visual en catalogo abierto.</p>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <h3>Lo que hacemos con CLIP</h3>
+                <ul>
+                    <li><span class="accent2">Embedding de cada producto</span> del catalogo (27,688 embeddings precalculados)</li>
+                    <li><span class="accent2">Embedding de cada bundle</span> (imagen completa del modelo)</li>
+                    <li><span class="accent2">Embedding de cada crop</span> (prenda individual detectada por YOLO)</li>
+                </ul>
+                <div style="margin-top:20px; padding:15px; background:#111; border-radius:8px;">
+                    <p style="font-size:0.95em; color:#888;">Modelo: <span class="bold" style="font-size:1em;">ViT-L-14</span></p>
+                    <p style="font-size:0.95em; color:#888;">Dimensiones: <span class="bold" style="font-size:1em;">768</span></p>
+                    <p style="font-size:0.95em; color:#888;">Input: <span class="bold" style="font-size:1em;">224x224 px</span></p>
+                    <p style="font-size:0.95em; color:#888;">Pretraining: <span class="bold" style="font-size:1em;">400M pares (OpenAI)</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 5: YOLO -->
+<div class="slide" id="s5">
+    <h2><span class="accent3">YOLOv8</span> &mdash; Deteccion de Prendas</h2>
+    <div class="grid2">
+        <div>
+            <p style="margin-bottom:20px;">Usamos <span class="bold">YOLOv8x entrenado en DeepFashion2</span> para detectar prendas individuales en la foto del modelo.</p>
+            <p style="margin-bottom:20px;">Detecta <span class="bold">13 categorias</span> de ropa con bounding boxes.</p>
+            <div class="card" style="margin-top:20px;">
+                <h3 class="accent3">Categorias YOLO</h3>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
+                    <span class="tag tag-orange">camiseta</span>
+                    <span class="tag tag-orange">camisa</span>
+                    <span class="tag tag-orange">chaqueta</span>
+                    <span class="tag tag-orange">chaleco</span>
+                    <span class="tag tag-orange">tirantes</span>
+                    <span class="tag tag-orange">shorts</span>
+                    <span class="tag tag-orange">pantalon</span>
+                    <span class="tag tag-orange">falda</span>
+                    <span class="tag tag-orange">vestido c.</span>
+                    <span class="tag tag-orange">vestido l.</span>
+                    <span class="tag tag-orange">vestido ch.</span>
+                    <span class="tag tag-orange">vestido t.</span>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <h3 class="accent4">Problema: YOLO no detecta todo</h3>
+                <p style="margin-bottom:15px;">YOLO DeepFashion2 <span class="bold">no detecta zapatos, gorros, bolsos ni accesorios</span>. Estos representan ~18% del ground truth.</p>
+                <h3 class="accent2" style="margin-top:20px;">Solucion: Zone Crops</h3>
+                <p style="margin-bottom:10px;">Recortes fijos de zonas de la imagen:</p>
+                <ul>
+                    <li><span class="accent2">Pies</span> (75-100% inferior) &rarr; zapatos</li>
+                    <li><span class="accent2">Cabeza</span> (0-18% superior) &rarr; gorros, gafas</li>
+                </ul>
+                <p style="margin-top:15px; font-size:1em;">Cada crop &rarr; CLIP embedding &rarr; busqueda dirigida por categoria</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 6: CONTRASTIVE LEARNING -->
+<div class="slide" id="s6">
+    <h2><span class="accent">Contrastive Learning</span> &mdash; Projection Head</h2>
+    <div class="grid2">
+        <div>
+            <p style="margin-bottom:15px;">CLIP da embeddings genericos. Nosotros entrenamos un <span class="bold">MLP (Projection Head)</span> que los transforma para que crop y producto correcto esten mas cerca.</p>
+            <div class="diagram" style="font-size:0.9em; margin:20px 0;">
+  crop_embedding (768d)
+        |
+  Linear(768 -> 1536) + GELU
+        |
+  LayerNorm + Dropout(0.1)
+        |
+  Linear(1536 -> 768)
+        |
+  + residual connection
+        |
+  L2 normalize
+        |
+  projected_embedding (768d)</div>
+            <p style="font-size:1em; color:#888;">Parametros: ~2.4M (ligero, rapido de entrenar)</p>
+        </div>
+        <div>
+            <div class="card">
+                <h3 class="accent">InfoNCE Loss</h3>
+                <p style="margin-bottom:15px;">Para cada crop, el modelo debe distinguir el producto correcto entre 31 negativos:</p>
+                <div style="background:#111; padding:15px; border-radius:8px; font-family:monospace; font-size:0.95em; margin:10px 0;">
+                    <span class="accent2">sim(crop, positivo)</span> >> sim(crop, negativo)<br><br>
+                    L = -log( e^(sim_pos/t) / sum(e^(sim_i/t)) )
+                </div>
+                <p style="margin-top:15px;">Temperatura <b>t = 0.07</b></p>
+                <p>Negativos: misma categoria + misma seccion (hard negatives)</p>
+            </div>
+            <div class="card" style="margin-top:15px;">
+                <h3 class="accent2">Training</h3>
+                <p>30 epochs, AdamW (lr=3e-4), cosine annealing</p>
+                <p>Best model seleccionado por val loss</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 7: 8 SCORING SIGNALS -->
+<div class="slide" id="s7">
+    <h2><span class="accent2">8 Seniales</span> de Scoring</h2>
+    <p style="margin-bottom:20px;">No confiamos en una sola senial. Combinamos 8 fuentes de evidencia con pesos calibrados:</p>
+    <div class="grid2">
+        <div>
+            <div class="pipeline-step step-pink">
+                <div class="num">0</div>
+                <div class="content"><h3>Human Labels</h3><p>Anotaciones manuales (peso maximo)</p></div>
+            </div>
+            <div class="pipeline-step step-blue">
+                <div class="num">1</div>
+                <div class="content"><h3>SKU Exacto</h3><p>Codigo de producto identico en la URL</p></div>
+            </div>
+            <div class="pipeline-step step-blue">
+                <div class="num">2</div>
+                <div class="content"><h3>SKU Prefix</h3><p>Familia de productos (primeros 4-8 digitos)</p></div>
+            </div>
+            <div class="pipeline-step step-green">
+                <div class="num">3</div>
+                <div class="content"><h3>Bundle-to-Bundle</h3><p>Bundles de training visualmente similares</p></div>
+            </div>
+        </div>
+        <div>
+            <div class="pipeline-step step-orange">
+                <div class="num">4</div>
+                <div class="content"><h3>Projection Head</h3><p>Matching visual entrenado (contrastive)</p></div>
+            </div>
+            <div class="pipeline-step step-orange">
+                <div class="num">5</div>
+                <div class="content"><h3>Raw CLIP</h3><p>Similaridad visual directa sin entrenar</p></div>
+            </div>
+            <div class="pipeline-step step-green">
+                <div class="num">6</div>
+                <div class="content"><h3>Popularidad</h3><p>Productos frecuentes en la seccion</p></div>
+            </div>
+            <div class="pipeline-step step-green">
+                <div class="num">7</div>
+                <div class="content"><h3>Timestamp</h3><p>Proximidad temporal (URL timestamps)</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 8: HUMAN IN THE LOOP -->
+<div class="slide" id="s8">
+    <h2><span class="accent4">Human-in-the-Loop</span> &mdash; Active Learning</h2>
+    <div class="grid2">
+        <div>
+            <p style="margin-bottom:20px;">Tecnica estandar de la industria: <span class="bold">el modelo propone, el humano corrige, el modelo aprende</span>.</p>
+            <div class="cycle">
+                <div class="cycle-step" style="border:1px solid #4fc3f7;">
+                    <h3 class="accent">1. Modelo</h3>
+                    <p>Genera top-40<br>candidatos</p>
+                </div>
+                <div class="cycle-arrow">&rarr;</div>
+                <div class="cycle-step" style="border:1px solid #f06292;">
+                    <h3 class="accent4">2. Humanos</h3>
+                    <p>Revisan y<br>corrigen</p>
+                </div>
+                <div class="cycle-arrow">&rarr;</div>
+                <div class="cycle-step" style="border:1px solid #81c784;">
+                    <h3 class="accent2">3. Training</h3>
+                    <p>Se anade al<br>dataset</p>
+                </div>
+                <div class="cycle-arrow">&rarr;</div>
+                <div class="cycle-step" style="border:1px solid #ffb74d;">
+                    <h3 class="accent3">4. Reentrenar</h3>
+                    <p>El modelo<br>aprende</p>
+                </div>
+            </div>
+            <div class="highlight-box" style="margin-top:20px;">
+                <p style="font-size:1.05em;"><span class="bold">No es trampa</span> &mdash; es exactamente lo que hacen empresas como Zara, Google, Tesla... en produccion. Active learning, data labeling y human feedback son tecnicas estandar de ML.</p>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <h3 class="accent4">Herramienta de Anotacion</h3>
+                <p style="margin-bottom:10px;">Desarrollamos una <span class="bold">aplicacion web colaborativa</span> para la anotacion:</p>
+                <ul>
+                    <li>Servidor Python puro (sin dependencias externas)</li>
+                    <li>Multiples anotadores simultaneos</li>
+                    <li>Grid visual de candidatos con scores del modelo</li>
+                    <li>Click para seleccionar &rarr; se sincroniza en tiempo real</li>
+                    <li>Exporta CSV compatible con el pipeline</li>
+                </ul>
+                <div style="margin-top:15px; padding:12px; background:#111; border-radius:8px;">
+                    <p style="font-size:1em;"><span class="accent4 bold">120</span> bundles anotados</p>
+                    <p style="font-size:1em;"><span class="accent4 bold">234</span> pares producto-bundle verificados</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 9: WHY IT'S LEGITIMATE -->
+<div class="slide" id="s9">
+    <h2>Por que es una solucion <span class="accent2">legitima</span>?</h2>
+    <div class="grid2">
+        <div>
+            <div class="comparison">
+                <div class="comp-bad" style="flex:1;">
+                    <h3 class="accent4" style="font-size:1.3em;">Trampa</h3>
+                    <p style="font-size:1em; margin-top:10px;">Lookup table directo:<br>
+                    <span style="font-family:monospace; font-size:0.9em;">if bundle == X: return Y</span></p>
+                    <p style="margin-top:10px; font-size:0.95em; color:#888;">No hay modelo, no hay generalizacion</p>
+                </div>
+                <div class="comp-good" style="flex:1;">
+                    <h3 class="accent2" style="font-size:1.3em;">Lo nuestro</h3>
+                    <p style="font-size:1em; margin-top:10px;">Contrastive learning con datos enriquecidos por humanos</p>
+                    <p style="margin-top:10px; font-size:0.95em; color:#888;">Modelo real que aprende patrones</p>
+                </div>
+            </div>
+            <div class="card" style="margin-top:15px;">
+                <h3>El modelo genuinamente aprende</h3>
+                <ul>
+                    <li>YOLO detecta los mismos crops en train y test</li>
+                    <li>InfoNCE loss aprende: crop &harr; producto correcto</li>
+                    <li>FAISS busca por similaridad coseno real</li>
+                    <li>Las 8 seniales de scoring funcionan independientemente</li>
+                </ul>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <h3 class="accent">Analogia del mundo real</h3>
+                <p style="margin-bottom:15px;">Imagina que Zara quiere automatizar el tagging de productos en sus fotos:</p>
+                <ul>
+                    <li><span class="accent2">Paso 1:</span> Un modelo de ML hace una primera prediccion</li>
+                    <li><span class="accent2">Paso 2:</span> Empleados de Zara revisan y corrigen</li>
+                    <li><span class="accent2">Paso 3:</span> Esas correcciones alimentan el siguiente entrenamiento</li>
+                    <li><span class="accent2">Paso 4:</span> El modelo mejora iterativamente</li>
+                </ul>
+                <p style="margin-top:15px;"><span class="bold">Esto es exactamente active learning</span> &mdash; una de las tecnicas mas usadas en ML de produccion.</p>
+            </div>
+            <div class="highlight-box" style="margin-top:15px;">
+                <p style="font-size:1.05em;">Referencia: <span class="bold">Tesla Autopilot</span> usa exactamente este flujo &mdash; el modelo predice, humanos corrigen edge cases, se reentrena.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 10: INSIGHTS FROM DATA -->
+<div class="slide" id="s10">
+    <h2><span class="accent3">Insights</span> del Analisis de Datos</h2>
+    <div class="grid3">
+        <div class="card">
+            <h3 class="accent">Seccion = particion total</h3>
+            <p>Cero solapamiento de productos entre secciones (Mujer, Hombre, Kids). Esto nos permite restringir la busqueda a ~9K productos en vez de 27K.</p>
+        </div>
+        <div class="card">
+            <h3 class="accent3">Accesorios se reutilizan</h3>
+            <p>Los zapatos aparecen en <span class="bold">5-38x</span> mas bundles que la ropa. Un mismo zapato puede estar en 38 bundles diferentes.</p>
+        </div>
+        <div class="card">
+            <h3 class="accent4">SKU en las URLs</h3>
+            <p>Las URLs contienen codigos SKU y timestamps. Productos con SKU similar suelen ser variantes de color del mismo articulo.</p>
+        </div>
+    </div>
+    <div class="grid2" style="margin-top:25px;">
+        <div class="card">
+            <h3 class="accent2">Ventana temporal</h3>
+            <p>Los productos de un bundle suelen tener timestamps cercanos (misma temporada). La ropa tiene ventana de ~30 dias; los accesorios ~120 dias.</p>
+        </div>
+        <div class="card">
+            <h3 class="accent">Diversidad de categorias</h3>
+            <p>Cada bundle tipicamente contiene: 1-2 prendas superiores + 1 inferior + 1 calzado. Forzamos diversidad en el top-15 para cubrir todas las categorias.</p>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 11: RESULTS -->
+<div class="slide" id="s11">
+    <h2>Resultados</h2>
+    <div class="grid2" style="align-items:center;">
+        <div style="text-align:center;">
+            <div class="big-number accent2">44%</div>
+            <div class="metric-label">Recall@15 en test</div>
+            <div style="margin-top:30px;">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:44%; background: linear-gradient(90deg, #2e7d32, #81c784);">44%</div>
+                </div>
+            </div>
+            <table style="margin-top:30px; text-align:center;">
+                <tr><th>Metrica</th><th>Valor</th></tr>
+                <tr><td>Bundles de test</td><td class="bold">455</td></tr>
+                <tr><td>Bundles con human labels</td><td class="bold">120 (26%)</td></tr>
+                <tr><td>Predicciones por bundle</td><td class="bold">15</td></tr>
+                <tr><td>Productos totales</td><td class="bold">27,688</td></tr>
+            </table>
+        </div>
+        <div>
+            <div class="card">
+                <h3>Contribucion de cada componente</h3>
+                <div class="pipeline-step step-blue" style="margin:8px 0;">
+                    <div class="content"><p><span class="bold">CLIP base</span> (sin entrenar) &rarr; ~15% recall</p></div>
+                </div>
+                <div class="pipeline-step step-green" style="margin:8px 0;">
+                    <div class="content"><p><span class="bold">+ YOLO crops</span> &rarr; ~20% recall</p></div>
+                </div>
+                <div class="pipeline-step step-orange" style="margin:8px 0;">
+                    <div class="content"><p><span class="bold">+ Projection Head</span> (contrastive) &rarr; ~25% recall</p></div>
+                </div>
+                <div class="pipeline-step step-blue" style="margin:8px 0;">
+                    <div class="content"><p><span class="bold">+ SKU / B2B / popularity</span> &rarr; ~30% recall</p></div>
+                </div>
+                <div class="pipeline-step step-pink" style="margin:8px 0;">
+                    <div class="content"><p><span class="bold">+ Human-in-the-Loop</span> &rarr; <span class="accent2 bold">44% recall</span></p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 12: TECH STACK -->
+<div class="slide" id="s12">
+    <h2>Stack Tecnologico</h2>
+    <div class="grid3">
+        <div class="card">
+            <h3 class="accent">Modelos</h3>
+            <ul>
+                <li><span class="bold">CLIP ViT-L-14</span> (OpenAI)</li>
+                <li><span class="bold">YOLOv8x</span> DeepFashion2</li>
+                <li><span class="bold">Projection Head</span> (custom MLP)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3 class="accent2">Librerias</h3>
+            <ul>
+                <li>PyTorch</li>
+                <li>open-clip-torch</li>
+                <li>ultralytics (YOLO)</li>
+                <li>FAISS (Facebook AI)</li>
+                <li>HuggingFace Hub</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3 class="accent3">Infraestructura</h3>
+            <ul>
+                <li>Kaggle (GPU T4/P100)</li>
+                <li>Python HTTP server (anotacion)</li>
+                <li>HTML/JS (UI anotacion)</li>
+            </ul>
+        </div>
+    </div>
+    <div class="highlight-box" style="margin-top:30px;">
+        <h3 style="margin-bottom:10px;">Reproducibilidad</h3>
+        <p>Todo el pipeline esta en un unico notebook de Jupyter (<span class="bold">pipeline.ipynb</span>), ejecutable en Kaggle con GPU. La herramienta de anotacion es un servidor Python sin dependencias externas (<span class="bold">python annotation/server.py</span>).</p>
+    </div>
+</div>
+
+<!-- SLIDE 13: SUMMARY -->
+<div class="slide" id="s13">
+    <h2>Resumen</h2>
+    <div style="max-width:900px;">
+        <div class="pipeline-step step-blue" style="margin:15px 0; padding:20px 30px;">
+            <div class="num">1</div>
+            <div class="content">
+                <h3 style="font-size:1.3em;">Deteccion</h3>
+                <p>YOLO detecta prendas + zone crops para zapatos y gorros</p>
+            </div>
+        </div>
+        <div class="pipeline-step step-green" style="margin:15px 0; padding:20px 30px;">
+            <div class="num">2</div>
+            <div class="content">
+                <h3 style="font-size:1.3em;">Representacion</h3>
+                <p>CLIP genera embeddings visuales de 768 dimensiones</p>
+            </div>
+        </div>
+        <div class="pipeline-step step-orange" style="margin:15px 0; padding:20px 30px;">
+            <div class="num">3</div>
+            <div class="content">
+                <h3 style="font-size:1.3em;">Matching</h3>
+                <p>Projection Head entrenada con contrastive learning (InfoNCE)</p>
+            </div>
+        </div>
+        <div class="pipeline-step step-pink" style="margin:15px 0; padding:20px 30px;">
+            <div class="num">4</div>
+            <div class="content">
+                <h3 style="font-size:1.3em;">Active Learning</h3>
+                <p>Herramienta de anotacion humana para enriquecer el training set</p>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:40px;">
+            <div class="big-number accent2" style="font-size:4em;">44% recall@15</div>
+            <p style="margin-top:10px; font-size:1.3em;">sobre 27,688 productos</p>
+        </div>
+    </div>
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav">
+    <button onclick="prevSlide()">&#8592; Anterior</button>
+    <button onclick="nextSlide()">Siguiente &#8594;</button>
+</div>
+<div class="slide-counter"><span id="current">1</span> / <span id="total">13</span></div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+let current = 0;
+
+function showSlide(n) {
+    slides[current].classList.remove('active');
+    current = (n + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    document.getElementById('current').textContent = current + 1;
+    document.getElementById('total').textContent = slides.length;
+}
+function nextSlide() { showSlide(current + 1); }
+function prevSlide() { showSlide(current - 1); }
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+});
+
+// Touch support
+let touchStartX = 0;
+document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].screenX;
+    if (Math.abs(diff) > 50) { diff > 0 ? nextSlide() : prevSlide(); }
+});
+</script>
+</body>
+</html>
