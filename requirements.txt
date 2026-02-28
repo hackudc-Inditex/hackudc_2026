@@ -8,3 +8,5 @@ aiohttp
 Pillow
 scikit-learn
 tqdm
+ultralytics
+huggingface_hub
