@@ -186,20 +186,7 @@ def main():
                 selected.append(pid)
                 selected_set.add(pid)
 
-        # --- CAPA 2: CLIP top matches de la sección ---
-        if bid in bid_to_emb and sec in section_indices:
-            query = bid_to_emb[bid].reshape(1, -1).copy()
-            faiss.normalize_L2(query)
-            scores, indices = section_indices[sec].search(query, 50)
-            for j in range(50):
-                if len(selected) >= 12:  # dejar 3 slots para hermanos
-                    break
-                pid = section_pids[sec][indices[0][j]]
-                if pid not in selected_set:
-                    selected.append(pid)
-                    selected_set.add(pid)
-
-        # --- CAPA 3: Hermanos SKU (prefijo 5, filtrados por sección) ---
+        # --- CAPA 2: Hermanos SKU (prefijo 5, filtrados por sección) ---
         if bsku:
             prefix = bsku[:5]
             for sku, pids in sku_to_products.items():
@@ -210,12 +197,8 @@ def main():
                             if desc not in cat_sections or sec in cat_sections[desc]:
                                 selected.append(pid)
                                 selected_set.add(pid)
-                        if len(selected) >= 15:
-                            break
-                if len(selected) >= 15:
-                    break
 
-        # --- CAPA 4: Si quedan slots, más CLIP ---
+        # --- CAPA 3: CLIP top matches de la sección (rellenar hasta 15) ---
         if len(selected) < 15 and bid in bid_to_emb and sec in section_indices:
             query = bid_to_emb[bid].reshape(1, -1).copy()
             faiss.normalize_L2(query)
